@@ -100,16 +100,16 @@ apply_filter() {
     $CONVERT_CMD "$source" -paint 2 -blur 0x1 "$FILTERED_OUTPUT"
     ;;
   "sketch")
-    $CONVERT_CMD "$source" -edge 2 -negate "$FILTERED_OUTPUT"
+    $CONVERT_CMD "$source" -colorspace gray -edge 3 -negate -normalize -level 20%,80% "$FILTERED_OUTPUT"
     ;;
   "charcoal")
-    $CONVERT_CMD "$source" -charcoal 2 "$FILTERED_OUTPUT"
+    $CONVERT_CMD "$source" -charcoal 3 -normalize "$FILTERED_OUTPUT"
     ;;
   "posterize")
-    $CONVERT_CMD "$source" -posterize 6 "$FILTERED_OUTPUT"
+    $CONVERT_CMD "$source" -posterize 8 "$FILTERED_OUTPUT"
     ;;
   "cartoon")
-    $CONVERT_CMD "$source" -paint 3 -edge 1 -negate -colorspace gray -blur 0x1 -contrast -contrast "$FILTERED_OUTPUT"
+    $CONVERT_CMD "$source" -morphology edge diamond:2 -negate -normalize -level 30%,100% -colorspace sRGB "$FILTERED_OUTPUT"
     ;;
 
   # ROZMYCIE
@@ -210,16 +210,12 @@ if [[ -n "$1" ]]; then
   exit 0
 fi
 
-# Menu Walker z RESET na górze
+# Menu Walker z RESET na górze (2 kolumny, węższy theme)
 FILTER=$(echo -e "\
-🔄  RESET TO ORIGINAL
-━━━━━━━━━━━━━━━━━━━
-  Original (No Change)
-━━━ Podstawowe ━━━
+  RESET TO ORIGINAL
   Mono Gray
   Invert
   Sepia
-━━━ Kolory Mono ━━━
   Mono Blue
   Mono Red
   Mono Green
@@ -227,19 +223,16 @@ FILTER=$(echo -e "\
   Mono Orange
   Mono Cyan
   Mono Pink
-━━━ Artystyczne ━━━
   Oil Paint
   Watercolor
   Sketch
   Charcoal
   Posterize
   Cartoon
-━━━ Rozmycie ━━━
   Blur
   Motion Blur
   Radial Blur
   Pixelate
-━━━ Światło ━━━
   Brightness Up
   Brightness Down
   Contrast Up
@@ -248,15 +241,13 @@ FILTER=$(echo -e "\
   Desaturate
   Vignette
   Glow
-━━━ Tekstury ━━━
   Noise
   Film Grain
   Emboss
   Sharpen
-━━━ Retro/Vintage ━━━
   VHS
   CRT
-  Faded" | walker --dmenu --theme dmenu_250 -p "Wallpaper Filter…")
+  Faded" | walker --dmenu --theme dmenu_250 -p "Wallpaper Filter…" -h 600 -w 500) #--columns 2)
 
 [[ -z "$FILTER" ]] && exit 0
 
