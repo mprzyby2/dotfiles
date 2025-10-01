@@ -1,0 +1,305 @@
+#!/bin/bash
+
+# Wallpaper Filter Manager dla Omarchy
+# Kumulacyjne nakładanie filtrów z możliwością resetu
+
+# Katalogi
+CACHE_DIR="$HOME/.cache/wallpapers"
+TRUE_ORIGINAL="$CACHE_DIR/true_original.jpg"
+CURRENT_STATE="$CACHE_DIR/current_state.jpg"
+FILTERED_OUTPUT="$CACHE_DIR/current_filtered.jpg"
+OMARCHY_WALL="$HOME/.config/omarchy/current/background"
+CHECKSUM_FILE="$CACHE_DIR/wallpaper_checksum.txt"
+
+mkdir -p "$CACHE_DIR"
+
+# Funkcja do sprawdzenia czy tapeta się zmieniła
+wallpaper_changed() {
+  local current_checksum=$(md5sum "$OMARCHY_WALL" 2>/dev/null | cut -d' ' -f1)
+  local saved_checksum=$(cat "$CHECKSUM_FILE" 2>/dev/null)
+
+  [[ "$current_checksum" != "$saved_checksum" ]]
+}
+
+# Jeśli tapeta się zmieniła, zapisz nowy oryginał
+if [[ ! -f "$TRUE_ORIGINAL" ]] || wallpaper_changed; then
+  cp "$OMARCHY_WALL" "$TRUE_ORIGINAL"
+  cp "$OMARCHY_WALL" "$CURRENT_STATE"
+  md5sum "$OMARCHY_WALL" | cut -d' ' -f1 >"$CHECKSUM_FILE"
+  rm -f "$CACHE_DIR/filter_history.txt"
+
+  if [[ -n "$1" ]]; then
+    notify-send "Wallpaper Filter" "Wykryto nową tapetę - zapisano jako oryginał" -t 2000
+  fi
+fi
+
+apply_filter() {
+  local filter="$1"
+  local param="${2:-50}"
+
+  local CONVERT_CMD="magick"
+
+  # RESET - wróć do prawdziwego oryginału
+  if [[ "$filter" == "reset" ]]; then
+    cp "$TRUE_ORIGINAL" "$CURRENT_STATE"
+    cp "$TRUE_ORIGINAL" "$OMARCHY_WALL"
+    md5sum "$OMARCHY_WALL" | cut -d' ' -f1 >"$CHECKSUM_FILE"
+    rm -f "$CACHE_DIR/filter_history.txt"
+    killall swaybg 2>/dev/null
+    sleep 0.2
+    swaybg -i "$OMARCHY_WALL" -m fill >/dev/null 2>&1 &
+    notify-send "Wallpaper Filter" "Reset do oryginału" -t 2000
+    return 0
+  fi
+
+  # Zastosuj filtr na OBECNYM STANIE (kumulacja!)
+  local source="$CURRENT_STATE"
+
+  case $filter in
+  "none")
+    cp "$source" "$FILTERED_OUTPUT"
+    ;;
+  "mono-gray")
+    $CONVERT_CMD "$source" -colorspace Gray "$FILTERED_OUTPUT"
+    ;;
+  "invert")
+    $CONVERT_CMD "$source" -negate "$FILTERED_OUTPUT"
+    ;;
+  "sepia")
+    $CONVERT_CMD "$source" -sepia-tone 80% "$FILTERED_OUTPUT"
+    ;;
+
+  # COLORIZE
+  "mono-blue")
+    $CONVERT_CMD "$source" -colorspace Gray -fill "#5599ff" -colorize 40% "$FILTERED_OUTPUT"
+    ;;
+  "mono-red")
+    $CONVERT_CMD "$source" -colorspace Gray -fill "#ff5555" -colorize 40% "$FILTERED_OUTPUT"
+    ;;
+  "mono-green")
+    $CONVERT_CMD "$source" -colorspace Gray -fill "#55ff55" -colorize 40% "$FILTERED_OUTPUT"
+    ;;
+  "mono-purple")
+    $CONVERT_CMD "$source" -colorspace Gray -fill "#9370db" -colorize 40% "$FILTERED_OUTPUT"
+    ;;
+  "mono-orange")
+    $CONVERT_CMD "$source" -colorspace Gray -fill "#ffa500" -colorize 40% "$FILTERED_OUTPUT"
+    ;;
+  "mono-cyan")
+    $CONVERT_CMD "$source" -colorspace Gray -fill "#00ffff" -colorize 40% "$FILTERED_OUTPUT"
+    ;;
+  "mono-pink")
+    $CONVERT_CMD "$source" -colorspace Gray -fill "#ff69b4" -colorize 40% "$FILTERED_OUTPUT"
+    ;;
+
+  # ARTYSTYCZNE
+  "oil-paint")
+    $CONVERT_CMD "$source" -paint 4 "$FILTERED_OUTPUT"
+    ;;
+  "watercolor")
+    $CONVERT_CMD "$source" -paint 2 -blur 0x1 "$FILTERED_OUTPUT"
+    ;;
+  "sketch")
+    $CONVERT_CMD "$source" -edge 2 -negate "$FILTERED_OUTPUT"
+    ;;
+  "charcoal")
+    $CONVERT_CMD "$source" -charcoal 2 "$FILTERED_OUTPUT"
+    ;;
+  "posterize")
+    $CONVERT_CMD "$source" -posterize 6 "$FILTERED_OUTPUT"
+    ;;
+  "cartoon")
+    $CONVERT_CMD "$source" -paint 3 -edge 1 -negate -colorspace gray -blur 0x1 -contrast -contrast "$FILTERED_OUTPUT"
+    ;;
+
+  # ROZMYCIE
+  "blur")
+    $CONVERT_CMD "$source" -blur 0x8 "$FILTERED_OUTPUT"
+    ;;
+  "motion-blur")
+    $CONVERT_CMD "$source" -motion-blur 0x20+45 "$FILTERED_OUTPUT"
+    ;;
+  "radial-blur")
+    $CONVERT_CMD "$source" -radial-blur 10 "$FILTERED_OUTPUT"
+    ;;
+  "pixelate")
+    local size=$(identify -format "%w" "$source")
+    local pixelsize=$((size / 50))
+    $CONVERT_CMD "$source" -scale ${pixelsize}x${pixelsize} -scale ${size}x${size} "$FILTERED_OUTPUT"
+    ;;
+
+  # ŚWIATŁO
+  "brightness-up")
+    $CONVERT_CMD "$source" -brightness-contrast 20x0 "$FILTERED_OUTPUT"
+    ;;
+  "brightness-down")
+    $CONVERT_CMD "$source" -brightness-contrast -20x0 "$FILTERED_OUTPUT"
+    ;;
+  "contrast-up")
+    $CONVERT_CMD "$source" -brightness-contrast 0x20 "$FILTERED_OUTPUT"
+    ;;
+  "contrast-down")
+    $CONVERT_CMD "$source" -brightness-contrast 0x-20 "$FILTERED_OUTPUT"
+    ;;
+  "saturate")
+    $CONVERT_CMD "$source" -modulate 100,150,100 "$FILTERED_OUTPUT"
+    ;;
+  "desaturate")
+    $CONVERT_CMD "$source" -modulate 100,50,100 "$FILTERED_OUTPUT"
+    ;;
+  "vignette")
+    $CONVERT_CMD "$source" -background black -vignette 0x20 "$FILTERED_OUTPUT"
+    ;;
+  "glow")
+    $CONVERT_CMD "$source" \( +clone -blur 0x10 \) -compose screen -composite "$FILTERED_OUTPUT"
+    ;;
+
+  # TEKSTURY
+  "noise")
+    $CONVERT_CMD "$source" +noise Uniform "$FILTERED_OUTPUT"
+    ;;
+  "film-grain")
+    $CONVERT_CMD "$source" +noise Gaussian -attenuate 0.3 "$FILTERED_OUTPUT"
+    ;;
+  "emboss")
+    $CONVERT_CMD "$source" -emboss 2 "$FILTERED_OUTPUT"
+    ;;
+  "sharpen")
+    $CONVERT_CMD "$source" -sharpen 0x2 "$FILTERED_OUTPUT"
+    ;;
+
+  # RETRO/VINTAGE
+  "vhs")
+    $CONVERT_CMD "$source" -modulate 100,120,100 +noise Gaussian -blur 0x0.5 -colorspace RGB \
+      -brightness-contrast -5x-5 "$FILTERED_OUTPUT"
+    ;;
+  "crt")
+    $CONVERT_CMD "$source" -modulate 100,110,100 \
+      \( +clone -sparse-color barycentric '0,0 black 0,%h lime %w,0 red %w,%h blue' -function sinusoid 1,0,0.5,0.5 \) \
+      -compose overlay -composite "$FILTERED_OUTPUT"
+    ;;
+  "faded")
+    $CONVERT_CMD "$source" -modulate 100,70,100 -brightness-contrast 5x-10 "$FILTERED_OUTPUT"
+    ;;
+
+  *)
+    notify-send "Wallpaper Filter" "Unknown filter: $filter" -u critical
+    return 1
+    ;;
+  esac
+
+  # Zapisz nowy stan jako obecny
+  cp "$FILTERED_OUTPUT" "$CURRENT_STATE"
+
+  # Zastosuj w Omarchy
+  cp "$FILTERED_OUTPUT" "$OMARCHY_WALL"
+  md5sum "$OMARCHY_WALL" | cut -d' ' -f1 >"$CHECKSUM_FILE"
+  killall swaybg 2>/dev/null
+  sleep 0.2
+  swaybg -i "$OMARCHY_WALL" -m fill >/dev/null 2>&1 &
+
+  # Historia filtrów
+  echo "$filter" >>"$CACHE_DIR/filter_history.txt"
+
+  notify-send "Wallpaper Filter" "Applied: $filter" -t 2000
+}
+
+# Wywołanie z parametrem (np. wallpaper-filter reset)
+if [[ -n "$1" ]]; then
+  apply_filter "$1" "$2"
+  exit 0
+fi
+
+# Menu Walker z RESET na górze
+FILTER=$(echo -e "\
+🔄  RESET TO ORIGINAL
+━━━━━━━━━━━━━━━━━━━
+  Original (No Change)
+━━━ Podstawowe ━━━
+  Mono Gray
+  Invert
+  Sepia
+━━━ Kolory Mono ━━━
+  Mono Blue
+  Mono Red
+  Mono Green
+  Mono Purple
+  Mono Orange
+  Mono Cyan
+  Mono Pink
+━━━ Artystyczne ━━━
+  Oil Paint
+  Watercolor
+  Sketch
+  Charcoal
+  Posterize
+  Cartoon
+━━━ Rozmycie ━━━
+  Blur
+  Motion Blur
+  Radial Blur
+  Pixelate
+━━━ Światło ━━━
+  Brightness Up
+  Brightness Down
+  Contrast Up
+  Contrast Down
+  Saturate
+  Desaturate
+  Vignette
+  Glow
+━━━ Tekstury ━━━
+  Noise
+  Film Grain
+  Emboss
+  Sharpen
+━━━ Retro/Vintage ━━━
+  VHS
+  CRT
+  Faded" | walker --dmenu --theme dmenu_250 -p "Wallpaper Filter…")
+
+[[ -z "$FILTER" ]] && exit 0
+
+# Pomiń separatory
+[[ "$FILTER" =~ ^━ ]] && exit 0
+
+# Mapowanie nazw na funkcje filtrów
+case "$FILTER" in
+*RESET*) apply_filter "reset" ;;
+*Original*) apply_filter "none" ;;
+*Mono\ Gray*) apply_filter "mono-gray" ;;
+*Invert*) apply_filter "invert" ;;
+*Sepia*) apply_filter "sepia" ;;
+*Mono\ Blue*) apply_filter "mono-blue" ;;
+*Mono\ Red*) apply_filter "mono-red" ;;
+*Mono\ Green*) apply_filter "mono-green" ;;
+*Mono\ Purple*) apply_filter "mono-purple" ;;
+*Mono\ Orange*) apply_filter "mono-orange" ;;
+*Mono\ Cyan*) apply_filter "mono-cyan" ;;
+*Mono\ Pink*) apply_filter "mono-pink" ;;
+*Oil\ Paint*) apply_filter "oil-paint" ;;
+*Watercolor*) apply_filter "watercolor" ;;
+*Sketch*) apply_filter "sketch" ;;
+*Charcoal*) apply_filter "charcoal" ;;
+*Posterize*) apply_filter "posterize" ;;
+*Cartoon*) apply_filter "cartoon" ;;
+*Motion\ Blur*) apply_filter "motion-blur" ;;
+*Radial\ Blur*) apply_filter "radial-blur" ;;
+*Pixelate*) apply_filter "pixelate" ;;
+*Blur*) apply_filter "blur" ;;
+*Brightness\ Up*) apply_filter "brightness-up" ;;
+*Brightness\ Down*) apply_filter "brightness-down" ;;
+*Contrast\ Up*) apply_filter "contrast-up" ;;
+*Contrast\ Down*) apply_filter "contrast-down" ;;
+*Saturate*) apply_filter "saturate" ;;
+*Desaturate*) apply_filter "desaturate" ;;
+*Vignette*) apply_filter "vignette" ;;
+*Glow*) apply_filter "glow" ;;
+*Film\ Grain*) apply_filter "film-grain" ;;
+*Noise*) apply_filter "noise" ;;
+*Emboss*) apply_filter "emboss" ;;
+*Sharpen*) apply_filter "sharpen" ;;
+*VHS*) apply_filter "vhs" ;;
+*CRT*) apply_filter "crt" ;;
+*Faded*) apply_filter "faded" ;;
+esac
