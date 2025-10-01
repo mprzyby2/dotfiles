@@ -1,0 +1,1 @@
+/home/saturnus/.config/omarchy/current/theme/neovim.lua
