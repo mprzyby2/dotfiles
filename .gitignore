@@ -1,0 +1,10 @@
+# ignoruj pliki tymczasowe
+*~
+*.swp
+*.swo
+.DS_Store
+
+# ignoruj prywatne dane
+**/*secret*
+**/*token*
+**/*password*
