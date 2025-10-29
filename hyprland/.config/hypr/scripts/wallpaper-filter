@@ -247,7 +247,7 @@ FILTER=$(echo -e "\
   Sharpen
   VHS
   CRT
-  Faded" | walker --dmenu --theme dmenu_250 -p "Wallpaper Filter…" -h 600 -w 500) #--columns 2)
+  Faded" | walker --dmenu -p "Wallpaper Filter…" ) #--columns 2)
 
 [[ -z "$FILTER" ]] && exit 0
 
