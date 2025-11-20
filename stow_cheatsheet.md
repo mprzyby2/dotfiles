@@ -1,6 +1,7 @@
 # GNU Stow - Cheat Sheet
 
 ## Spis treści
+
 - [Podstawowe komendy](#podstawowe-komendy)
 - [Pierwsze uruchomienie](#pierwsze-uruchomienie)
 - [Codzienne użycie](#codzienne-użycie)
@@ -37,6 +38,7 @@ stow -t /sciezka pakiet
 ## Pierwsze uruchomienie
 
 ### Krok 1: Utwórz strukturę
+
 ```bash
 mkdir ~/dotfiles
 cd ~/dotfiles
@@ -44,6 +46,7 @@ git init
 ```
 
 ### Krok 2: Przenieś istniejącą konfigurację
+
 ```bash
 # Przykład dla hyprland
 mkdir -p hyprland/.config
@@ -55,6 +58,7 @@ mv ~/.zshrc zsh/
 ```
 
 ### Krok 3: Linkuj z powrotem
+
 ```bash
 cd ~/dotfiles
 stow hyprland
@@ -62,6 +66,7 @@ stow zsh
 ```
 
 ### Krok 4: Git
+
 ```bash
 git add .
 git commit -m "Initial dotfiles"
@@ -72,6 +77,7 @@ git push -u origin main
 ## Codzienne użycie
 
 ### Edycja konfiguracji
+
 ```bash
 # Edytujesz normalnie przez symlink
 nvim ~/.config/hyprland/hyprland.conf
@@ -85,6 +91,7 @@ git push
 ```
 
 ### Dodanie nowej aplikacji
+
 ```bash
 cd ~/dotfiles
 mkdir -p kitty/.config/kitty
@@ -95,6 +102,7 @@ git commit -m "Add kitty"
 ```
 
 ### Usunięcie konfiguracji
+
 ```bash
 cd ~/dotfiles
 stow -D hyprland
@@ -104,6 +112,7 @@ stow -D hyprland
 ## Zarządzanie konfiguracjami
 
 ### Przełączanie między wersjami
+
 ```bash
 # Masz: hyprland-work, hyprland-gaming
 cd ~/dotfiles
@@ -112,6 +121,7 @@ stow hyprland-gaming
 ```
 
 ### Dodanie nowych plików do istniejącego pakietu
+
 ```bash
 # Dodajesz plik w ~/dotfiles/hyprland/.config/hyprland/scripts/
 cd ~/dotfiles
@@ -119,6 +129,7 @@ stow -R hyprland  # odśwież
 ```
 
 ### Sprawdzenie co jest zlinkowane
+
 ```bash
 # Sprawdź pojedynczy plik
 ls -la ~/.config/hyprland
@@ -149,6 +160,7 @@ stow */
 ## Rozwiązywanie problemów
 
 ### Konflikt: plik już istnieje
+
 ```bash
 # ERROR: existing target is neither a link nor a directory
 
@@ -166,6 +178,7 @@ stow --adopt hyprland
 ```
 
 ### Ignorowanie plików
+
 ```bash
 # Utwórz ~/dotfiles/.stow-local-ignore
 cat > .stow-local-ignore << 'EOF'
@@ -177,6 +190,7 @@ EOF
 ```
 
 ### Naprawienie złych symlinkow
+
 ```bash
 cd ~/dotfiles
 stow -D pakiet  # usuń stare
@@ -186,6 +200,7 @@ stow pakiet     # dodaj nowe
 ## Struktura katalogów
 
 ### Prawidłowa struktura
+
 ```
 ~/dotfiles/
 ├── hyprland/
@@ -204,6 +219,7 @@ stow pakiet     # dodaj nowe
 ```
 
 ### Jak to działa
+
 ```bash
 cd ~/dotfiles
 stow hyprland
@@ -213,6 +229,7 @@ stow hyprland
 ```
 
 ### Domyślny target
+
 Stow linkuje do katalogu nadrzędnego (parent directory).
 Jeśli jesteś w `~/dotfiles`, linkuje do `~`.
 
@@ -247,3 +264,4 @@ cd ~/dotfiles && stow -D app
 # Przywróć
 cd ~/dotfiles && stow app
 ```
+

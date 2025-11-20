@@ -11,3 +11,4 @@
 
 # ignoruj katalog ktory byl dodany do omarchy na poczatku a nie wiem do czego on sluzy.
 dotfiles.nix.old_wtf_is_this
+*.old
