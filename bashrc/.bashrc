@@ -35,8 +35,36 @@ eval "$(direnv hook bash)"
 # Set up fzf key bindings and fuzzy completion
 eval "$(fzf --bash)"
 
+# fzf alt+c hidden directories toggle binding alt+h
+export FZF_ALT_C_COMMAND="fd --type d --no-hidden"
+export FZF_ALT_C_OPTS="
+  --header 'ALT-H: toggle hidden'
+  --prompt 'dirs> '
+  --bind 'alt-h:transform:
+    if [[ \$FZF_PROMPT == \"dirs> \" ]]; then
+      echo \"change-prompt(dirs+hidden> )+reload(fd --type d --hidden --exclude .git)\"
+    else
+      echo \"change-prompt(dirs> )+reload(fd --type d --no-hidden)\"
+    fi'
+"
+
+# FZF ctrl+t — wklejanie pliku/katalogu, ALT-H toggle hidden
+export FZF_CTRL_T_COMMAND="fd --no-hidden"
+export FZF_CTRL_T_OPTS="
+  --header 'ALT-H: toggle hidden'
+  --prompt 'files> '
+  --bind 'alt-h:transform:
+    if [[ \$FZF_PROMPT == \"files> \" ]]; then
+      echo \"change-prompt(files+hidden> )+reload(fd --hidden --exclude .git)\"
+    else
+      echo \"change-prompt(files> )+reload(fd --no-hidden)\"
+    fi'
+"
+
+
 alias dirs="dirs -v -l"
 
+# yazi y function to quit in currently selected directory
 function y() {
 	local tmp="$(mktemp -t "yazi-cwd.XXXXXX")" cwd
 	command yazi "$@" --cwd-file="$tmp"
